@@ -151,6 +151,7 @@ private slots:
 #ifdef XTUPLE_CONNECT
     void slotXtSyncCurrentMailbox();
 #endif
+    void slotIncludeInSystrayCountMailbox();
     void slotSubscribeCurrentMailbox();
     void slotShowOnlySubscribed();
     void updateMessageFlags();
@@ -307,6 +308,7 @@ private:
     QAction *m_actionLayoutOneAtTime;
     QAction *m_actionMarkMailboxAsRead;
 
+    QAction *m_actionIncludeInSystrayCount;
     QAction *m_actionSubscribeMailbox;
     QAction *m_actionShowOnlySubscribed;
 

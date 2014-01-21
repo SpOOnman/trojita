@@ -426,6 +426,10 @@ void MainWindow::createActions()
     m_actionSubscribeMailbox->setCheckable(true);
     m_actionSubscribeMailbox->setEnabled(false);
     connect(m_actionSubscribeMailbox, SIGNAL(triggered()), this, SLOT(slotSubscribeCurrentMailbox()));
+    
+    m_actionIncludeInSystrayCount = new QAction(tr("&Include in systray count"), this);
+    m_actionIncludeInSystrayCount->setCheckable(true);
+    connect(m_actionIncludeInSystrayCount, SIGNAL(toggled(bool)), this, SLOT(slotIncludeInSystrayCountMailbox()));
 
     aboutTrojita = new QAction(trUtf8("&About Trojitá..."), this);
     connect(aboutTrojita, SIGNAL(triggered()), this, SLOT(slotShowAboutTrojita()));
@@ -849,17 +853,12 @@ int MainWindow::countUnreadRecursively(QStringList *includedMailboxes, QModelInd
 void MainWindow::handleTrayIconChange()
 {
     qDebug() << "--------------------- handleTrayIconChange ------------------";
-    QStringList defaultValue = QStringList(QLatin1String("INBOX"));
-    defaultValue << "payu/gerrit";
-    defaultValue << QLatin1String("Public/touk/lists/touki");
-    defaultValue << QLatin1String("Public/payu");
-    defaultValue << "wiki";
     
-    QStringList includedMailboxes = m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes).toStringList(), QVariant(defaultValue);
-    includedMailboxes = defaultValue;
+    QStringList includedMailboxes = m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes, QStringList("INBOX")).toStringList();
+    qDebug() << "Included in configuration: " << includedMailboxes;
     int unreadCount = 0;
     
-    // Iterate over inbox and all subscribed folders.
+    // Iterate over recursively over all included folders.
     int rowCount = model->rowCount(QModelIndex());
     for (int i = 0; i < rowCount; i++) {
         QModelIndex mailbox = model->index(i, 0, QModelIndex());
@@ -1013,6 +1012,7 @@ void MainWindow::showContextMenuMboxTree(const QPoint &position)
 {
     QList<QAction *> actionList;
     if (mboxTree->indexAt(position).isValid()) {
+        QModelIndex mailbox = mboxTree->indexAt(position);
         actionList.append(createChildMailbox);
         actionList.append(deleteCurrentMailbox);
         actionList.append(m_actionMarkMailboxAsRead);
@@ -1020,13 +1020,18 @@ void MainWindow::showContextMenuMboxTree(const QPoint &position)
         actionList.append(reloadMboxList);
 
         actionList.append(m_actionSubscribeMailbox);
-        m_actionSubscribeMailbox->setChecked(mboxTree->indexAt(position).data(Imap::Mailbox::RoleMailboxIsSubscribed).toBool());
+        m_actionSubscribeMailbox->setChecked(mailbox.data(Imap::Mailbox::RoleMailboxIsSubscribed).toBool());
+        
+        actionList.append(m_actionIncludeInSystrayCount);
+            m_actionIncludeInSystrayCount->setChecked(
+                m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes).toStringList().contains(
+                    mailbox.data(Imap::Mailbox::RoleMailboxName).toString()));
 
 #ifdef XTUPLE_CONNECT
         actionList.append(xtIncludeMailboxInSync);
         xtIncludeMailboxInSync->setChecked(
             m_settings->value(Common::SettingsNames::xtSyncMailboxList).toStringList().contains(
-                mboxTree->indexAt(position).data(Imap::Mailbox::RoleMailboxName).toString()));
+                mailbox.data(Imap::Mailbox::RoleMailboxName).toString()));
 #endif
     } else {
         actionList.append(createTopMailbox);
@@ -1887,6 +1892,26 @@ void MainWindow::slotSubscribeCurrentMailbox()
         model->unsubscribeMailbox(mailbox);
     }
 }
+
+void MainWindow::slotIncludeInSystrayCountMailbox()
+{
+    qDebug() << "slotIncludeInSystrayCountMailbox " << m_actionIncludeInSystrayCount->isChecked();
+    qDebug() << "Included in configuration: " << m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes, QStringList("INBOX")).toStringList();
+    
+    QModelIndex index = mboxTree->currentIndex();
+    if (! index.isValid())
+        return;
+    
+    QString mailbox = index.data(Imap::Mailbox::RoleMailboxName).toString();
+    QStringList includedMailboxes = m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes, QStringList("INBOX")).toStringList();
+    if (m_actionIncludeInSystrayCount->isChecked()) {
+        includedMailboxes.append(mailbox);
+    } else {
+        includedMailboxes.removeAll(mailbox);
+    }
+    m_settings->setValue(Common::SettingsNames::guiSystrayIncludedMailboxes, includedMailboxes);
+}
+
 
 void MainWindow::slotShowOnlySubscribed()
 {
