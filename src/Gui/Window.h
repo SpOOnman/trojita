@@ -217,6 +217,7 @@ private:
     void recoverDrafts();
     void createSysTray();
     void removeSysTray();
+    int countUnreadRecursively(QStringList *includedMailboxes, QModelIndex *mailbox);
 
     Imap::Mailbox::Model *model;
     Imap::Mailbox::MailboxModel *mboxModel;

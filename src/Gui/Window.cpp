@@ -826,49 +826,82 @@ void MainWindow::slotToggleSysTray()
     }
 }
 
+int MainWindow::countUnreadRecursively(QStringList *includedMailboxes, QModelIndex *mailbox)
+{
+    int unreadCount = 0;
+    QString inboxName = mailbox->data(Imap::Mailbox::RoleMailboxName).toString();
+    bool hasChildren = mailbox->data(Imap::Mailbox::RoleMailboxHasChildMailboxes).toBool();
+    bool mailboxIncluded = includedMailboxes->contains(inboxName);
+    qDebug() << "Iterate over inbox " << inboxName << ", is valid? " << mailbox->isValid() << ", is included? " << mailboxIncluded << ", has children? " << hasChildren;
+    if (mailbox->isValid() && mailboxIncluded) {
+        unreadCount += mailbox->data(Imap::Mailbox::RoleUnreadMessageCount).toInt();
+    }
+    if (hasChildren) {
+        int childrenCount = mailbox->data(Imap::Mailbox::RoleMailboxChildMailboxesCount).toInt();
+        for (int i = 0; i < childrenCount; i++) {
+            QModelIndex childMailbox = mailbox->child(i, 0);
+            unreadCount += countUnreadRecursively(includedMailboxes, &childMailbox);
+        }
+    }
+    return unreadCount;
+}
+
 void MainWindow::handleTrayIconChange()
 {
-    QModelIndex mailbox = model->index(1, 0, QModelIndex());
+    qDebug() << "--------------------- handleTrayIconChange ------------------";
+    QStringList defaultValue = QStringList(QLatin1String("INBOX"));
+    defaultValue << "payu/gerrit";
+    defaultValue << QLatin1String("Public/touk/lists/touki");
+    defaultValue << QLatin1String("Public/payu");
+    defaultValue << "wiki";
+    
+    QStringList includedMailboxes = m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes).toStringList(), QVariant(defaultValue);
+    includedMailboxes = defaultValue;
+    int unreadCount = 0;
+    
+    // Iterate over inbox and all subscribed folders.
+    int rowCount = model->rowCount(QModelIndex());
+    for (int i = 0; i < rowCount; i++) {
+        QModelIndex mailbox = model->index(i, 0, QModelIndex());
+        unreadCount += countUnreadRecursively(&includedMailboxes, &mailbox);
+    }
+    
+    QPixmap pixmap = QPixmap(QLatin1String(":/icons/trojita.png"));
+    if (unreadCount > 0) {
+        QPainter painter(&pixmap);
+        QFont f;
+        f.setPixelSize(pixmap.height() * 0.59 );
+        f.setWeight(QFont::Bold);
 
-    if (mailbox.isValid()) {
-        Q_ASSERT(mailbox.data(Imap::Mailbox::RoleMailboxName).toString() == QLatin1String("INBOX"));
-        QPixmap pixmap = QPixmap(QLatin1String(":/icons/trojita.png"));
-        if (mailbox.data(Imap::Mailbox::RoleUnreadMessageCount).toInt() > 0) {
-            QPainter painter(&pixmap);
-            QFont f;
-            f.setPixelSize(pixmap.height() * 0.59 );
-            f.setWeight(QFont::Bold);
-
-            QString text = mailbox.data(Imap::Mailbox::RoleUnreadMessageCount).toString();
-            QFontMetrics fm(f);
-            if (mailbox.data(Imap::Mailbox::RoleUnreadMessageCount).toUInt() > 666) {
-                // You just have too many messages.
-                text = QString::fromUtf8("🐮");
-                fm = QFontMetrics(f);
-            } else if (fm.width(text) > pixmap.width()) {
-                f.setPixelSize(f.pixelSize() * pixmap.width() / fm.width(text));
-                fm = QFontMetrics(f);
-            }
-            painter.setFont(f);
-
-            QRect boundingRect = fm.tightBoundingRect(text);
-            boundingRect.setWidth(boundingRect.width() + 2);
-            boundingRect.setHeight(boundingRect.height() + 2);
-            boundingRect.moveCenter(QPoint(pixmap.width() / 2, pixmap.height() / 2));
-            boundingRect = boundingRect.intersected(pixmap.rect());
-            painter.setBrush(Qt::white);
-            painter.setPen(Qt::white);
-            painter.setOpacity(0.7);
-            painter.drawRoundedRect(boundingRect, 2.0, 2.0);
-
-            painter.setOpacity(1.0);
-            painter.setBrush(Qt::NoBrush);
-            painter.setPen(Qt::darkBlue);
-            painter.drawText(boundingRect, Qt::AlignCenter, text);
-            m_trayIcon->setToolTip(trUtf8("Trojitá - %n unread message(s)", 0, mailbox.data(Imap::Mailbox::RoleUnreadMessageCount).toInt()));
-            m_trayIcon->setIcon(QIcon(pixmap));
-            return;
+        QString text = QString::number(unreadCount);
+        QFontMetrics fm(f);
+        if (unreadCount > 666) {
+            // You just have too many messages.
+            text = QString::fromUtf8("🐮");
+            fm = QFontMetrics(f);
+        } else if (fm.width(text) > pixmap.width()) {
+            f.setPixelSize(f.pixelSize() * pixmap.width() / fm.width(text));
+            fm = QFontMetrics(f);
         }
+        painter.setFont(f);
+
+        QRect boundingRect = fm.tightBoundingRect(text);
+        boundingRect.setWidth(boundingRect.width() + 2);
+        boundingRect.setHeight(boundingRect.height() + 2);
+        boundingRect.moveCenter(QPoint(pixmap.width() / 2, pixmap.height() / 2));
+        boundingRect = boundingRect.intersected(pixmap.rect());
+        painter.setBrush(Qt::white);
+        painter.setPen(Qt::white);
+        painter.setOpacity(0.7);
+        painter.drawRoundedRect(boundingRect, 2.0, 2.0);
+
+        painter.setOpacity(1.0);
+        painter.setBrush(Qt::NoBrush);
+        painter.setPen(Qt::darkBlue);
+        painter.drawText(boundingRect, Qt::AlignCenter, text);
+        m_trayIcon->setToolTip(trUtf8("Trojitá - %n unread message(s)", 0, unreadCount));
+        m_trayIcon->setIcon(QIcon(pixmap));
+        return;
     }
     m_trayIcon->setToolTip(trUtf8("Trojitá"));
     m_trayIcon->setIcon(QIcon(QLatin1String(":/icons/trojita.png")));

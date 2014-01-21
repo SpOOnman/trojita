@@ -48,7 +48,7 @@ struct SettingsNames {
     static const QString guiSizesInMainWinWhenCompact, guiSizesInMainWinWhenWide;
     static const QString guiAllowRawSearch;
     static const QString appLoadHomepage;
-    static const QString guiShowSystray, guiOnSystrayClose;
+    static const QString guiShowSystray, guiOnSystrayClose, guiSystrayIncludedMailboxes;
     static const QString knownEmailsKey;
     static const QString addressbookPlugin, passwordPlugin;
 };
