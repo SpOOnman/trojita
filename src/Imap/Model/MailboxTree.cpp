@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -778,7 +778,6 @@ TreeItemPart *TreeItemMailbox::partIdToPtr(Model *const model, TreeItemMessage *
 
     TreeItem *item = message;
     Q_ASSERT(item);
-    Q_ASSERT(item->parent()->fetched());   // TreeItemMsgList
     QStringList separated = partIdentification.split('.');
     for (QStringList::const_iterator it = separated.constBegin(); it != separated.constEnd(); ++it) {
         bool ok;

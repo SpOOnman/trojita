@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -229,6 +229,8 @@ SslTlsSocket::SslTlsSocket(QSslSocket *sock, const QString &host, const quint16 
     // I have brought this up on the imap-protocol mailing list; the consensus seemed to be that the likelihood of an
     // successful exploit on an IMAP conversation is very unlikely.  The compression itself is, on the other hand, a
     // very worthwhile goal, so we explicitly enable it again.
+    // Unfortunately, this was backported to older Qt versions as well (see qt4.git's 3488f1db96dbf70bb0486d3013d86252ebf433e0),
+    // but there is no way of enabling compression back again.
 #if QT_VERSION >= QT_VERSION_CHECK(4, 8, 0)
     QSslConfiguration sslConf = sock->sslConfiguration();
     sslConf.setSslOption(QSsl::SslOptionDisableCompression, false);

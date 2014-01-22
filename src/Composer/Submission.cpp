@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
    Copyright (C) 2012 Peter Amidon <peter@picnicpark.org>
 
    This file is part of the Trojita Qt IMAP e-mail client,
@@ -158,7 +158,7 @@ void Submission::setSmtpOptions(const bool useBurl, const QString &smtpUsername)
 {
     m_useBurl = useBurl;
     if (m_useBurl && !m_model->isGenUrlAuthSupported()) {
-        m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Submission"), tr("Cannot BURL without the URLAUTH extension"));
+        m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Submission"), QLatin1String("Cannot BURL without the URLAUTH extension"));
         m_useBurl = false;
     }
     m_smtpUsername = smtpUsername;

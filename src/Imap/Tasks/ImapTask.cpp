@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -96,7 +96,7 @@ void ImapTask::markAsActiveTask(const TaskActivatingPosition place)
         connect(this, SIGNAL(destroyed(QObject*)), model->accessParser(parser).maintainingTask, SLOT(slotTaskDeleted(QObject*)));
     }
 
-    log(tr("Activated"));
+    log(QLatin1String("Activated"));
     CHECK_TASK_TREE
 }
 

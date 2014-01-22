@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -105,7 +105,7 @@ bool UnSelectTask::handleStateHelper(const Imap::Responses::State *const resp)
         } else if (resp->tag == selectMissingTag) {
             if (resp->kind == Responses::OK) {
                 QTimer::singleShot(0, this, SLOT(doFakeSelect()));
-                log(tr("The emergency EXAMINE command has unexpectedly succeeded, trying to get out of here..."), Common::LOG_MAILBOX_SYNC);
+                log(QLatin1String("The emergency EXAMINE command has unexpectedly succeeded, trying to get out of here..."), Common::LOG_MAILBOX_SYNC);
             } else {
                 // This is very good :)
                 _completed();

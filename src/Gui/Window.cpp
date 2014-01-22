@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -263,7 +263,9 @@ void MainWindow::createActions()
     showMenuBar->setCheckable(true);
     showMenuBar->setChecked(true);
     connect(showMenuBar, SIGNAL(triggered(bool)), menuBar(), SLOT(setVisible(bool)));
+    connect(showMenuBar, SIGNAL(triggered(bool)), menuShow, SLOT(setHidden(bool)));
     connect(showMenuBar, SIGNAL(triggered(bool)), m_delayedStateSaving, SLOT(start()));
+    connect(menuShow, SIGNAL(clicked()), showMenuBar , SLOT(trigger()));
 
     showToolBar = new QAction(tr("Show &Toolbar"), this);
     showToolBar->setCheckable(true);
@@ -357,7 +359,7 @@ void MainWindow::createActions()
     m_replyGuess = ShortcutHandler::instance()->createAction(QLatin1String("action_reply_guess"), this, SLOT(slotReplyGuess()), this);
     m_replyGuess->setEnabled(true);
 
-    actionThreadMsgList = new QAction(tr("Show Messages in &Threads"), this);
+    actionThreadMsgList = new QAction(Gui::loadIcon(QLatin1String("mail-view-threaded")), tr("Show Messages in &Threads"), this);
     actionThreadMsgList->setCheckable(true);
     // This action is enabled/disabled by model's capabilities
     actionThreadMsgList->setEnabled(false);
@@ -618,6 +620,11 @@ void MainWindow::createWidgets()
     busyParsersIndicator = new TaskProgressIndicator(this);
     statusBar()->addPermanentWidget(busyParsersIndicator);
     busyParsersIndicator->hide();
+
+    menuShow = new QToolButton(this);
+    menuShow->setText(tr("Show Menu Bar"));
+    statusBar()->addPermanentWidget(menuShow);
+    menuShow->hide();
 
     networkIndicator = new QToolButton(this);
     networkIndicator->setPopupMode(QToolButton::InstantPopup);
@@ -2401,6 +2408,7 @@ void MainWindow::applySizesAndState()
         if (ok) {
             menuBar()->setVisible(visibility);
             showMenuBar->setChecked(visibility);
+            menuShow->setVisible(!visibility);
         }
     }
 
@@ -2425,5 +2433,4 @@ void MainWindow::possiblyLoadMessageOnSplittersChanged()
         }
     }
 }
-
 }

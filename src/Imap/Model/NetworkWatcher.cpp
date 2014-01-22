@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -25,7 +25,6 @@
 #include <QNetworkConfigurationManager>
 #include <QNetworkSession>
 #endif
-#include <QNetworkConfigurationManager>
 #include "Model.h"
 
 namespace Imap {
@@ -63,6 +62,7 @@ NetworkWatcher::NetworkWatcher(QObject *parent, Model *model):
 void NetworkWatcher::onGlobalOnlineStateChanged(const bool online)
 {
     if (online) {
+        m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Network Session"), QLatin1String("System is back online"));
         setDesiredNetworkPolicy(m_desiredPolicy);
     } else {
         m_model->setNetworkPolicy(NETWORK_OFFLINE);
@@ -101,12 +101,22 @@ NetworkPolicy NetworkWatcher::effectiveNetworkPolicy() const
 
 void NetworkWatcher::setDesiredNetworkPolicy(const NetworkPolicy policy)
 {
-    m_model->logTrace(0, Common::LOG_OTHER, tr("Network Session"),
-                      QString::fromUtf8("User's preference changed: %1").arg(policyToString(policy)));
-    m_desiredPolicy = policy;
+    if (policy != m_desiredPolicy) {
+        m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Network Session"),
+                          QString::fromUtf8("User's preference changed: %1").arg(policyToString(policy)));
+        m_desiredPolicy = policy;
+    }
     if (m_model->networkPolicy() == NETWORK_OFFLINE && policy != NETWORK_OFFLINE) {
         // We are asked to connect, the model is not connected yet
         if (isOnline()) {
+            if (m_netConfManager->allConfigurations().isEmpty()) {
+                m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Network Session"),
+                                  // Yes, this is quite deliberate call to tr(). We absolutely want users to be able to read this
+                                  // (but no so much as to bother them with a popup for now, I guess -- or not?)
+                                  tr("Qt does not recognize any network session. Please be sure that qtbearer package "
+                                     "(or similar) is installed. Assuming that network is actually already available."));
+            }
+
             m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Network Session"), QLatin1String("Network is online -> connecting"));
             reconnectModelNetwork();
         } else {
@@ -151,6 +161,12 @@ void NetworkWatcher::reconnectModelNetwork()
 bool NetworkWatcher::isOnline() const
 {
 #ifdef TROJITA_HAS_QNETWORKSESSION
+    if (m_netConfManager->allConfigurations().isEmpty()) {
+        // This means that Qt has no idea about the network. Let's pretend that we are connected.
+        // This happens e.g. when users do not have the qt-bearer package installed.
+        return true;
+    }
+
     return m_netConfManager->isOnline() && m_session->isOpen();
 #else
     // We actually don't know, so let's pretend that the network is here. The alternative is that we would never connect :).
@@ -200,7 +216,12 @@ void NetworkWatcher::networkConfigurationChanged(const QNetworkConfiguration &co
     if (reconnect) {
         m_model->setNetworkPolicy(NETWORK_OFFLINE);
         resetSession();
-        m_session->open();
+        if (m_session->configuration().isValid()) {
+            m_session->open();
+        } else {
+            m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Network Session"),
+                              QLatin1String("Waiting for network to become available..."));
+        }
     }
 }
 
@@ -216,6 +237,9 @@ void NetworkWatcher::resetSession()
     ss << "Switched to network configuration " << conf.name() << " (" << conf.bearerTypeName() << ", " << conf.identifier() << ")";
     m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Network Session"), buf);
     connect(m_session, SIGNAL(opened()), this, SLOT(reconnectModelNetwork()));
+    // We cannot pass the argument here because one cannot really have #ifdef-ed slots with MOC, and QNetworkSession::SessionError
+    // is not available on Qt 4.6 (RHEL6).
+    connect(m_session, SIGNAL(error(QNetworkSession::SessionError)), this, SLOT(networkSessionError()));
 }
 
 QNetworkConfiguration NetworkWatcher::sessionsActiveConfiguration() const
@@ -228,6 +252,21 @@ QNetworkConfiguration NetworkWatcher::sessionsActiveConfiguration() const
         // yes, this can return an invalid session
         return m_netConfManager->configurationFromIdentifier(activeConfId);
     }
+}
+
+void NetworkWatcher::networkSessionError()
+{
+    m_model->logTrace(0, Common::LOG_OTHER, QLatin1String("Network Session"),
+                      QString::fromUtf8("Session error: %1").arg(m_session->errorString()));
+}
+#else
+void NetworkWatcher::networkConfigurationChanged(const QNetworkConfiguration &)
+{
+    // We have to implement this, otherwise MOC complains loudly. Yes, even if the actual slot is #ifdef-ed out.
+}
+
+void NetworkWatcher::networkSessionError()
+{
 }
 #endif
 

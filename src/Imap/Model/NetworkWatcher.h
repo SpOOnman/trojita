@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -54,9 +54,8 @@ public slots:
 
     void reconnectModelNetwork();
     void onGlobalOnlineStateChanged(const bool online);
-#ifdef TROJITA_HAS_QNETWORKSESSION
     void networkConfigurationChanged(const QNetworkConfiguration& conf);
-#endif
+    void networkSessionError();
 
 signals:
     void effectiveNetworkPolicyChanged();

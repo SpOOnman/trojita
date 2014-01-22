@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -318,11 +318,11 @@ void Model::handleState(Imap::Parser *ptr, const Imap::Responses::State *const r
                 // This one probably should not be logged at all; dovecot sends these reponses to keep NATted connections alive
                 break;
             } else {
-                logTrace(ptr->parserId(), Common::LOG_OTHER, QString(), tr("Warning: unhandled untagged OK with a response code"));
+                logTrace(ptr->parserId(), Common::LOG_OTHER, QString(), QLatin1String("Warning: unhandled untagged OK with a response code"));
                 break;
             }
         case NO:
-            logTrace(ptr->parserId(), Common::LOG_OTHER, QString(), tr("Warning: unhandled untagged NO..."));
+            logTrace(ptr->parserId(), Common::LOG_OTHER, QString(), QLatin1String("Warning: unhandled untagged NO..."));
             break;
         default:
             throw UnexpectedResponseReceived("Unhandled untagged response, sorry", *resp);
@@ -505,7 +505,6 @@ void Model::finalizeFetchPart(TreeItemMailbox *const mailbox, const uint sequenc
     // At first, verify that the message itself is marked as loaded.
     // If it isn't, it's probably because of Model::releaseMessageData().
     TreeItem *item = mailbox->m_children[0]; // TreeItemMsgList
-    Q_ASSERT(static_cast<TreeItemMsgList *>(item)->fetched());
     item = item->child(sequenceNo - 1, this);   // TreeItemMessage
     Q_ASSERT(item);   // FIXME: or rather throw an exception?
     if (item->accessFetchStatus() == TreeItem::NONE) {
@@ -1120,26 +1119,24 @@ void Model::broadcastParseError(const uint parser, const QString &exceptionClass
     if (exceptionClass == QLatin1String("NotAnImapServerError")) {
         QString service;
         if (line.startsWith("+OK") || line.startsWith("-ERR")) {
-            service = tr("a POP3");
+            service = tr("<p>It appears that you are connecting to a POP3 server. That won't work here.</p>");
         } else if (line.startsWith("220 ") || line.startsWith("220-")) {
-            service = tr("an SMTP");
+            service = tr("<p>It appears that you are connecting to an SMTP server. That won't work here.</p>");
         }
-        if (!service.isEmpty())
-            service = tr("<p>It appears that you are connecting to %1 server. That won't work here.</p>").arg(service);
         message = trUtf8("<h2>This is not an IMAP server</h2>"
-                                    "%1"
-                                    "<p>Please check your settings to make sure you are connecting to the IMAP service. "
-                                    "A typical port number for IMAP is 143 or 993.</p>"
-                                    "<p>The server said:</p>"
-                                    "<pre>%2</pre>").arg(service, QString::fromUtf8(line.constData()));
+                         "%1"
+                         "<p>Please check your settings to make sure you are connecting to the IMAP service. "
+                         "A typical port number for IMAP is 143 or 993.</p>"
+                         "<p>The server said:</p>"
+                         "<pre>%2</pre>").arg(service, QString::fromUtf8(line.constData()));
     } else {
         message = trUtf8("<p>The IMAP server sent us a reply which we could not parse. "
-                                    "This might either mean that there's a bug in Trojitá's code, or "
-                                    "that the IMAP server you are connected to is broken. Please "
-                                    "report this as a bug anyway. Here are the details:</p>"
-                                    "<p><b>%1</b>: %2</p>"
-                                    "<pre>%3\n%4</pre>"
-                                   ).arg(exceptionClass, errorMessage, line, details);
+                         "This might either mean that there's a bug in Trojitá's code, or "
+                         "that the IMAP server you are connected to is broken. Please "
+                         "report this as a bug anyway. Here are the details:</p>"
+                         "<p><b>%1</b>: %2</p>"
+                         "<pre>%3\n%4</pre>"
+                         ).arg(exceptionClass, errorMessage, line, details);
     }
     EMIT_LATER(this, connectionError, Q_ARG(QString, message));
     setNetworkPolicy(NETWORK_OFFLINE);

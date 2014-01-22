@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
    Copyright (C) 2013 Pali Rohár <pali.rohar@gmail.com>
 
    This file is part of the Trojita Qt IMAP e-mail client,
@@ -114,7 +114,13 @@ void SMTP::sendContinueGotPassword()
     emit sending(); // FIXME: later
     switch (sendingMode) {
     case MODE_SMTP_DATA:
-        qwwSmtp->sendMail(from, to, QString::fromUtf8(data));
+        {
+            //RFC5321 specifies to prepend a period to lines starting with a period in section 4.5.2
+            if (data.startsWith('.'))
+                data.prepend('.');
+            data.replace("\n.", "\n..");
+            qwwSmtp->sendMail(from, to, QString::fromUtf8(data));
+        }
         break;
     case MODE_SMTP_BURL:
         qwwSmtp->sendMailBurl(from, to, data);

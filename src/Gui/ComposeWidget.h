@@ -1,4 +1,4 @@
-/* Copyright (C) 2006 - 2013 Jan Kundrát <jkt@flaska.net>
+/* Copyright (C) 2006 - 2014 Jan Kundrát <jkt@flaska.net>
 
    This file is part of the Trojita Qt IMAP e-mail client,
    http://trojita.flaska.net/
@@ -36,11 +36,13 @@ class ComposeWidget;
 }
 
 class QAbstractListModel;
+class QActionGroup;
 class QComboBox;
 class QLineEdit;
 class QMenu;
 class QPushButton;
 class QSettings;
+class QToolButton;
 
 namespace Composer {
 class Submission;
@@ -111,6 +113,8 @@ private slots:
     void setUiWidgetsEnabled(const bool enabled);
 
     void passwordRequested(const QString &user, const QString &host);
+    void toggleReplyMarking();
+    void updateReplyMarkingAction();
 
 private:
     static QByteArray extractMailAddress(const QString &text, bool &ok);
@@ -128,6 +132,11 @@ private:
     Ui::ComposeWidget *ui;
     QPushButton *sendButton;
     QPushButton *cancelButton;
+    QToolButton *m_markButton;
+    QActionGroup *m_markAsReply;
+    QAction *m_actionStandalone;
+    QAction *m_actionInReplyTo;
+    QAction *m_actionToggleMarking;
     typedef QPair<QComboBox*, QLineEdit*> Recipient;
     QList<Recipient> m_recipients;
     QTimer *m_recipientListUpdateTimer;
