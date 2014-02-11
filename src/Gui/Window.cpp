@@ -426,8 +426,8 @@ void MainWindow::createActions()
     m_actionSubscribeMailbox->setCheckable(true);
     m_actionSubscribeMailbox->setEnabled(false);
     connect(m_actionSubscribeMailbox, SIGNAL(triggered()), this, SLOT(slotSubscribeCurrentMailbox()));
-    
-    m_actionIncludeInSystrayCount = new QAction(tr("&Include in systray count"), this);
+
+    m_actionIncludeInSystrayCount = new QAction(tr("&Check for new messages"), this);
     m_actionIncludeInSystrayCount->setCheckable(true);
     connect(m_actionIncludeInSystrayCount, SIGNAL(toggled(bool)), this, SLOT(slotIncludeInSystrayCountMailbox()));
 
@@ -830,20 +830,19 @@ void MainWindow::slotToggleSysTray()
     }
 }
 
-int MainWindow::countUnreadRecursively(QStringList *includedMailboxes, QModelIndex *mailbox)
+int MainWindow::countUnreadRecursively(const QStringList &includedMailboxes, const QModelIndex &mailbox)
 {
     int unreadCount = 0;
-    QString inboxName = mailbox->data(Imap::Mailbox::RoleMailboxName).toString();
-    bool hasChildren = mailbox->data(Imap::Mailbox::RoleMailboxHasChildMailboxes).toBool();
-    bool mailboxIncluded = includedMailboxes->contains(inboxName);
-    if (mailbox->isValid() && mailboxIncluded) {
-        unreadCount += mailbox->data(Imap::Mailbox::RoleUnreadMessageCount).toInt();
+    bool hasChildren = mailbox.data(Imap::Mailbox::RoleMailboxHasChildMailboxes).toBool();
+    bool mailboxIncluded = includedMailboxes.contains(mailbox.data(Imap::Mailbox::RoleMailboxName).toString());
+    if (mailbox.isValid() && mailboxIncluded) {
+        unreadCount += mailbox.data(Imap::Mailbox::RoleUnreadMessageCount).toInt();
     }
     if (hasChildren) {
-        int childrenCount = mailbox->data(Imap::Mailbox::RoleMailboxChildMailboxesCount).toInt();
+        int childrenCount = mailbox.model()->rowCount(mailbox);
         for (int i = 0; i < childrenCount; i++) {
-            QModelIndex childMailbox = mailbox->child(i, 0);
-            unreadCount += countUnreadRecursively(includedMailboxes, &childMailbox);
+            QModelIndex childMailbox = mailbox.child(i, 0);
+            unreadCount += countUnreadRecursively(includedMailboxes, childMailbox);
         }
     }
     return unreadCount;
@@ -853,14 +852,14 @@ void MainWindow::handleTrayIconChange()
 {
     QStringList includedMailboxes = m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes, QStringList("INBOX")).toStringList();
     int unreadCount = 0;
-    
+
     // Iterate over recursively over all included folders.
     int rowCount = model->rowCount(QModelIndex());
     for (int i = 0; i < rowCount; i++) {
         QModelIndex mailbox = model->index(i, 0, QModelIndex());
-        unreadCount += countUnreadRecursively(&includedMailboxes, &mailbox);
+        unreadCount += countUnreadRecursively(includedMailboxes, mailbox);
     }
-    
+
     QPixmap pixmap = QPixmap(QLatin1String(":/icons/trojita.png"));
     if (unreadCount > 0) {
         QPainter painter(&pixmap);
@@ -1017,7 +1016,7 @@ void MainWindow::showContextMenuMboxTree(const QPoint &position)
 
         actionList.append(m_actionSubscribeMailbox);
         m_actionSubscribeMailbox->setChecked(mailbox.data(Imap::Mailbox::RoleMailboxIsSubscribed).toBool());
-        
+
         actionList.append(m_actionIncludeInSystrayCount);
             m_actionIncludeInSystrayCount->setChecked(
                 m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes).toStringList().contains(
@@ -1896,7 +1895,7 @@ void MainWindow::slotIncludeInSystrayCountMailbox()
         return;
 
     QString mailbox = index.data(Imap::Mailbox::RoleMailboxName).toString();
-    QStringList includedMailboxes = m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes, QStringList("INBOX")).toStringList();
+    QStringList includedMailboxes = m_settings->value(Common::SettingsNames::guiSystrayIncludedMailboxes, QStringList(QLatin1String("INBOX"))).toStringList();
     if (m_actionIncludeInSystrayCount->isChecked()) {
         includedMailboxes.append(mailbox);
     } else {
