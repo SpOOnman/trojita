@@ -390,6 +390,7 @@ set(libImap_SOURCES
     ${path_Imap}/Model/FlagsOperation.cpp
     ${path_Imap}/Model/FullMessageCombiner.cpp
     ${path_Imap}/Model/ImapAccess.cpp
+    ${path_Imap}/Model/MailboxFinder.cpp
     ${path_Imap}/Model/MailboxMetadata.cpp
     ${path_Imap}/Model/MailboxModel.cpp
     ${path_Imap}/Model/MailboxTree.cpp
